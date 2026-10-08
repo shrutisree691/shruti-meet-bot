@@ -17,13 +17,14 @@ from telegram.ext import (
 
 TOKEN = os.environ["BOT_TOKEN"]
 ADMIN_ID = int(os.environ["ADMIN_ID"])
-
-# Add this in Railway Variables:
-# CHANNEL_ID=-100xxxxxxxxxxxx
 CHANNEL_ID = os.environ.get("CHANNEL_ID", "").strip()
 
 DB = "members.db"
 
+
+# =========================================================
+# LOGGING
+# =========================================================
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -38,10 +39,10 @@ logger = logging.getLogger(__name__)
 # =========================================================
 
 def db():
-    c = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB)
 
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS members(
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS members (
             user_id INTEGER PRIMARY KEY,
             username TEXT,
             first_name TEXT,
@@ -53,28 +54,28 @@ def db():
         )
     """)
 
-    c.commit()
-    return c
+    conn.commit()
+    return conn
 
 
-def save(user):
-    c = db()
+def save_user(user):
+    conn = db()
 
-    c.execute("""
-        INSERT INTO members(
+    conn.execute("""
+        INSERT INTO members (
             user_id,
             username,
             first_name,
             last_name
         )
-        VALUES(?,?,?,?)
+        VALUES (?, ?, ?, ?)
 
         ON CONFLICT(user_id) DO UPDATE SET
-            username=excluded.username,
-            first_name=excluded.first_name,
-            last_name=excluded.last_name,
-            active=1,
-            updated_at=CURRENT_TIMESTAMP
+            username = excluded.username,
+            first_name = excluded.first_name,
+            last_name = excluded.last_name,
+            active = 1,
+            updated_at = CURRENT_TIMESTAMP
     """, (
         user.id,
         user.username or "",
@@ -82,58 +83,64 @@ def save(user):
         user.last_name or "",
     ))
 
-    c.commit()
-    c.close()
+    conn.commit()
+    conn.close()
 
 
-def set_status(user_id, new_status):
-    c = db()
+def set_status(user_id, status):
+    conn = db()
 
-    c.execute("""
+    conn.execute("""
         UPDATE members
-        SET status=?,
-            active=1,
-            updated_at=CURRENT_TIMESTAMP
-        WHERE user_id=?
-    """, (new_status, user_id))
+        SET status = ?,
+            active = 1,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+    """, (status, user_id))
 
-    c.commit()
-    c.close()
+    conn.commit()
+    conn.close()
 
 
 def set_removed(user_id):
-    c = db()
+    conn = db()
 
-    c.execute("""
+    conn.execute("""
         UPDATE members
-        SET status='removed',
-            active=0,
-            updated_at=CURRENT_TIMESTAMP
-        WHERE user_id=?
+        SET status = 'removed',
+            active = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
     """, (user_id,))
 
-    c.commit()
-    c.close()
+    conn.commit()
+    conn.close()
 
 
-def users(status_filter=None):
-    c = db()
+def get_users(status=None):
+    conn = db()
 
-    query = "SELECT user_id FROM members WHERE active=1"
-    args = ()
+    if status:
+        rows = conn.execute("""
+            SELECT user_id
+            FROM members
+            WHERE active = 1
+            AND status = ?
+        """, (status,)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT user_id
+            FROM members
+            WHERE active = 1
+        """).fetchall()
 
-    if status_filter:
-        query += " AND status=?"
-        args = (status_filter,)
-
-    rows = c.execute(query, args).fetchall()
-    c.close()
+    conn.close()
 
     return [row[0] for row in rows]
 
 
 # =========================================================
-# FIRST SCREEN
+# FIRST MENU
 # =========================================================
 
 def main_menu():
@@ -153,45 +160,11 @@ def main_menu():
     ])
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    save(update.effective_user)
-
-    await update.message.reply_text(
-        "🌸 Welcome!\n\n"
-        "I’m Miss Shruti’s Assistant ❤️\n\n"
-        "I’m here to help you with her private channel and "
-        "guide you through the available options.\n\n"
-        "If you’re genuinely interested, please choose an option "
-        "below and I’ll guide you through the next step. 😊\n\n"
-        "Please be respectful and genuine — time-wasters may be removed. ❤️",
-        reply_markup=main_menu(),
-    )
-
-
-async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    save(update.effective_user)
-
-    await update.message.reply_text(
-        "Please choose an option below. ❤️",
-        reply_markup=main_menu(),
-    )
-
-
-async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    await update.message.reply_text(
-        "Use /start or /status to update your interest."
-    )
-
-
 # =========================================================
-# INTERESTED — SECOND SCREEN
+# INTERESTED MENU
 # =========================================================
 
 def interested_menu():
-
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton(
@@ -225,7 +198,6 @@ def interested_menu():
 # =========================================================
 
 def confirmation_menu():
-
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton(
@@ -243,7 +215,51 @@ def confirmation_menu():
 
 
 # =========================================================
-# REMOVE USER FROM CHANNEL
+# START
+# =========================================================
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    save_user(update.effective_user)
+
+    await update.message.reply_text(
+        "😎 Heyyy! I’m Miss Bot! 🤖🌸\n\n"
+        "I’m Miss Shruti’s little AI Assistant ❤️\n\n"
+        "I’m here to help you navigate her private channel, "
+        "understand the options, and guide you through the "
+        "next steps. 😊\n\n"
+        "Ready? Let’s get started! ✨👇",
+        reply_markup=main_menu(),
+    )
+
+
+# =========================================================
+# STATUS COMMAND
+# =========================================================
+
+async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    save_user(update.effective_user)
+
+    await update.message.reply_text(
+        "Please choose an option below. ❤️",
+        reply_markup=main_menu(),
+    )
+
+
+# =========================================================
+# HELP
+# =========================================================
+
+async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    await update.message.reply_text(
+        "Use /start or /status to update your interest."
+    )
+
+
+# =========================================================
+# REMOVE FROM CHANNEL
 # =========================================================
 
 async def remove_from_channel(bot, user_id):
@@ -274,15 +290,7 @@ async def remove_from_channel(bot, user_id):
         )
 
         if not can_restrict:
-
-            logger.error(
-                "Bot does not have can_restrict_members permission."
-            )
-
-            return (
-                False,
-                "Bot does not have permission to remove members."
-            )
+            return False, "Bot does not have permission to remove members."
 
         await bot.ban_chat_member(
             chat_id=chat_id,
@@ -290,35 +298,32 @@ async def remove_from_channel(bot, user_id):
         )
 
         logger.info(
-            "User %s removed from channel %s",
+            "Removed user %s from channel %s",
             user_id,
             chat_id
         )
 
+        # Unban immediately so the person is removed,
+        # but not permanently banned.
         try:
-
             await bot.unban_chat_member(
                 chat_id=chat_id,
                 user_id=user_id,
                 only_if_banned=True
             )
-
         except Exception:
-
-            logger.exception(
-                "User was removed but unban failed."
-            )
+            logger.exception("User removed but unban failed.")
 
         return True, None
 
-    except Exception as e:
+    except Exception as error:
 
         logger.exception(
-            "Failed to remove user %s from channel.",
+            "Failed to remove user %s",
             user_id
         )
 
-        return False, str(e)
+        return False, str(error)
 
 
 async def remove_and_reply(
@@ -360,7 +365,7 @@ async def remove_and_reply(
 
 
 # =========================================================
-# FINANCIAL REASONS
+# FINANCIAL OPTION
 # =========================================================
 
 async def financial_message(query):
@@ -501,10 +506,14 @@ async def buttons(
 
     await query.answer()
 
-    save(query.from_user)
+    save_user(query.from_user)
 
     user_id = query.from_user.id
 
+
+    # -----------------------------------------------------
+    # INTERESTED
+    # -----------------------------------------------------
 
     if query.data == "interested":
 
@@ -522,6 +531,10 @@ async def buttons(
         )
 
 
+    # -----------------------------------------------------
+    # NOT INTERESTED
+    # -----------------------------------------------------
+
     elif query.data == "not_interested":
 
         set_status(
@@ -536,25 +549,45 @@ async def buttons(
         )
 
 
+    # -----------------------------------------------------
+    # FINANCIAL
+    # -----------------------------------------------------
+
     elif query.data == "financial":
 
         await financial_message(query)
 
+
+    # -----------------------------------------------------
+    # OUTSIDE BANGALORE
+    # -----------------------------------------------------
 
     elif query.data == "outside_bangalore":
 
         await outside_bangalore_message(query)
 
 
+    # -----------------------------------------------------
+    # OUTSIDE CITY
+    # -----------------------------------------------------
+
     elif query.data == "outside_city":
 
         await outside_city_message(query)
 
 
+    # -----------------------------------------------------
+    # READY
+    # -----------------------------------------------------
+
     elif query.data == "ready":
 
         await ready_message(query)
 
+
+    # -----------------------------------------------------
+    # REMOVE
+    # -----------------------------------------------------
 
     elif query.data == "remove":
 
@@ -566,13 +599,16 @@ async def buttons(
 
 
 # =========================================================
-# ADMIN
+# ADMIN CHECK
 # =========================================================
 
 def is_admin(update: Update):
-
     return update.effective_user.id == ADMIN_ID
 
+
+# =========================================================
+# ADMIN STATS
+# =========================================================
 
 async def stats(
     update: Update,
@@ -580,35 +616,43 @@ async def stats(
 ):
 
     if not is_admin(update):
-
         return await update.message.reply_text(
             "Admin only."
         )
 
-    c = db()
+    conn = db()
 
-    result = c.execute("""
+    result = conn.execute("""
         SELECT
             COUNT(*),
             SUM(status='interested'),
             SUM(status='not_interested'),
-            SUM(status='unknown'),
-            SUM(status='ready_to_confirm')
+            SUM(status='meet_later_financial'),
+            SUM(status='meet_later_outside_bangalore'),
+            SUM(status='interested_outside_city'),
+            SUM(status='ready_to_confirm'),
+            SUM(status='removed')
         FROM members
-        WHERE active=1
     """).fetchone()
 
-    c.close()
+    conn.close()
 
     await update.message.reply_text(
-        f"📊 Stats\n\n"
+        "📊 Bot Statistics\n\n"
         f"👥 Registered: {result[0] or 0}\n"
         f"❤️ Interested: {result[1] or 0}\n"
         f"❌ Not Interested: {result[2] or 0}\n"
-        f"❤️ Ready: {result[4] or 0}\n"
-        f"❔ No status: {result[3] or 0}"
+        f"💰 Financial reasons: {result[3] or 0}\n"
+        f"📍 Outside Bangalore: {result[4] or 0}\n"
+        f"✈️ Outside-city interest: {result[5] or 0}\n"
+        f"✅ Ready: {result[6] or 0}\n"
+        f"🚫 Removed: {result[7] or 0}"
     )
 
+
+# =========================================================
+# ALL MEMBERS
+# =========================================================
 
 async def members(
     update: Update,
@@ -616,70 +660,100 @@ async def members(
 ):
 
     if not is_admin(update):
-
         return await update.message.reply_text(
             "Admin only."
         )
 
-    c = db()
+    conn = db()
 
-    rows = c.execute("""
+    rows = conn.execute("""
         SELECT
             user_id,
             first_name,
             last_name,
             username,
-            status
+            status,
+            active
         FROM members
-        WHERE active=1
         ORDER BY updated_at DESC
-        LIMIT 50
+        LIMIT 100
     """).fetchall()
 
-    c.close()
+    conn.close()
 
     if not rows:
-
         return await update.message.reply_text(
             "No members yet."
         )
 
+    status_names = {
+        "interested":
+            "❤️ Interested",
+
+        "not_interested":
+            "❌ Not Interested",
+
+        "meet_later_financial":
+            "💰 Meet later — financial reasons",
+
+        "meet_later_outside_bangalore":
+            "📍 Meet later — outside Bangalore",
+
+        "interested_outside_city":
+            "✈️ Interested outside Bangalore",
+
+        "ready_to_confirm":
+            "✅ Ready to confirm",
+
+        "removed":
+            "🚫 Removed",
+
+        "unknown":
+            "❔ Unknown",
+    }
+
     output = ["👥 Members\n"]
 
-    for i, (
-        uid,
-        first,
-        last,
-        username,
-        member_status
-    ) in enumerate(rows, 1):
+    for i, row in enumerate(rows, 1):
+
+        (
+            user_id,
+            first_name,
+            last_name,
+            username,
+            status,
+            active
+        ) = row
 
         name = " ".join(
-            x for x in (first, last)
+            x for x in (first_name, last_name)
             if x
         ) or "Unknown"
 
-        if member_status == "interested":
-            icon = "❤️"
-
-        elif member_status == "not_interested":
-            icon = "❌"
-
-        elif member_status == "ready_to_confirm":
-            icon = "✅"
-
-        else:
-            icon = "❔"
-
-        output.append(
-            f"{i}. {icon} {name} — "
-            f"@{username if username else 'no_username'} — {uid}"
+        status_text = status_names.get(
+            status,
+            status
         )
 
-    await update.message.reply_text(
-        "\n".join(output)[:4000]
-    )
+        output.append(
+            f"{i}. {name}\n"
+            f"   Username: @{username if username else 'none'}\n"
+            f"   ID: {user_id}\n"
+            f"   Status: {status_text}\n"
+            f"   Active: {'Yes' if active else 'No'}\n"
+        )
 
+    message = "\n".join(output)
+
+    for i in range(0, len(message), 4000):
+        await update.message.reply_text(
+            message[i:i + 4000]
+        )
+
+
+# =========================================================
+# SINGLE MEMBER
+# =========================================================
 
 async def member(
     update: Update,
@@ -687,7 +761,6 @@ async def member(
 ):
 
     if not is_admin(update):
-
         return await update.message.reply_text(
             "Admin only."
         )
@@ -696,14 +769,15 @@ async def member(
         not context.args
         or not context.args[0].isdigit()
     ):
-
         return await update.message.reply_text(
             "Use: /member 123456789"
         )
 
-    c = db()
+    user_id = int(context.args[0])
 
-    row = c.execute("""
+    conn = db()
+
+    row = conn.execute("""
         SELECT
             user_id,
             first_name,
@@ -714,45 +788,147 @@ async def member(
             created_at,
             updated_at
         FROM members
-        WHERE user_id=?
-    """, (
-        int(context.args[0]),
-    )).fetchone()
+        WHERE user_id = ?
+    """, (user_id,)).fetchone()
 
-    c.close()
+    conn.close()
 
     if not row:
-
         return await update.message.reply_text(
             "Member not found."
         )
 
     (
         uid,
-        first,
-        last,
+        first_name,
+        last_name,
         username,
-        member_status,
+        status,
         active,
         created,
-        updated,
+        updated
     ) = row
 
+    status_names = {
+        "interested": "❤️ Interested",
+        "not_interested": "❌ Not Interested",
+        "meet_later_financial":
+            "💰 Meet later — financial reasons",
+        "meet_later_outside_bangalore":
+            "📍 Meet later — outside Bangalore",
+        "interested_outside_city":
+            "✈️ Interested outside Bangalore",
+        "ready_to_confirm":
+            "✅ Ready to confirm",
+        "removed":
+            "🚫 Removed",
+    }
+
     name = " ".join(
-        x for x in (first, last)
+        x for x in (first_name, last_name)
         if x
     ) or "Unknown"
 
     await update.message.reply_text(
-        f"👤 Member\n\n"
+        "👤 Member\n\n"
         f"Name: {name}\n"
         f"Username: @{username if username else 'none'}\n"
         f"ID: {uid}\n"
-        f"Status: {member_status}\n"
+        f"Status: {status_names.get(status, status)}\n"
         f"Active: {'Yes' if active else 'No'}\n"
         f"Registered: {created}\n"
         f"Updated: {updated}"
     )
+
+
+# =========================================================
+# INTERESTED LIST
+# =========================================================
+
+async def interested_list(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    if not is_admin(update):
+        return await update.message.reply_text(
+            "Admin only."
+        )
+
+    conn = db()
+
+    rows = conn.execute("""
+        SELECT
+            user_id,
+            first_name,
+            last_name,
+            username,
+            status
+        FROM members
+        WHERE status IN (
+            'interested',
+            'meet_later_financial',
+            'meet_later_outside_bangalore',
+            'interested_outside_city',
+            'ready_to_confirm'
+        )
+        ORDER BY updated_at DESC
+    """).fetchall()
+
+    conn.close()
+
+    if not rows:
+        return await update.message.reply_text(
+            "❤️ No interested members yet."
+        )
+
+    status_names = {
+        "interested":
+            "❤️ Interested",
+
+        "meet_later_financial":
+            "💰 Meet later — financial reasons",
+
+        "meet_later_outside_bangalore":
+            "📍 Meet later — currently outside Bangalore",
+
+        "interested_outside_city":
+            "✈️ Interested in meeting outside Bangalore",
+
+        "ready_to_confirm":
+            "✅ Ready to confirm",
+    }
+
+    output = ["❤️ Interested Members\n"]
+
+    for i, row in enumerate(rows, 1):
+
+        (
+            user_id,
+            first_name,
+            last_name,
+            username,
+            status
+        ) = row
+
+        name = " ".join(
+            x for x in (first_name, last_name)
+            if x
+        ) or "Unknown"
+
+        output.append(
+            f"{i}. {name}\n"
+            f"   Username: @{username if username else 'none'}\n"
+            f"   ID: {user_id}\n"
+            f"   Status: {status_names.get(status, status)}\n"
+        )
+
+    message = "\n".join(output)
+
+    for i in range(0, len(message), 4000):
+        await update.message.reply_text(
+            message[i:i + 4000]
+        )
 
 
 # =========================================================
@@ -765,7 +941,6 @@ async def broadcast(
 ):
 
     if not is_admin(update):
-
         return await update.message.reply_text(
             "Admin only."
         )
@@ -773,7 +948,6 @@ async def broadcast(
     text = update.message.text.partition(" ")[2].strip()
 
     if not text:
-
         return await update.message.reply_text(
             "Use: /broadcast Your message"
         )
@@ -781,19 +955,16 @@ async def broadcast(
     sent = 0
     failed = 0
 
-    for user_id in users():
+    for user_id in get_users():
 
         try:
-
             await context.bot.send_message(
-                user_id,
-                text
+                chat_id=user_id,
+                text=text
             )
-
             sent += 1
 
         except Exception:
-
             failed += 1
 
     await update.message.reply_text(
@@ -803,16 +974,15 @@ async def broadcast(
 
 
 # =========================================================
-# INTERESTED BROADCAST
+# BROADCAST TO INTERESTED USERS
 # =========================================================
 
-async def interested(
+async def interested_broadcast(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
     if not is_admin(update):
-
         return await update.message.reply_text(
             "Admin only."
         )
@@ -820,27 +990,51 @@ async def interested(
     text = update.message.text.partition(" ")[2].strip()
 
     if not text:
-
         return await update.message.reply_text(
             "Use: /interested Your message"
         )
 
+    interested_statuses = [
+        "interested",
+        "meet_later_financial",
+        "meet_later_outside_bangalore",
+        "interested_outside_city",
+        "ready_to_confirm",
+    ]
+
+    conn = db()
+
+    placeholders = ",".join(
+        "?" for _ in interested_statuses
+    )
+
+    rows = conn.execute(
+        f"""
+        SELECT user_id
+        FROM members
+        WHERE active = 1
+        AND status IN ({placeholders})
+        """,
+        interested_statuses
+    ).fetchall()
+
+    conn.close()
+
     sent = 0
     failed = 0
 
-    for user_id in users("interested"):
+    for row in rows:
 
         try:
 
             await context.bot.send_message(
-                user_id,
-                text
+                chat_id=row[0],
+                text=text
             )
 
             sent += 1
 
         except Exception:
-
             failed += 1
 
     await update.message.reply_text(
@@ -860,6 +1054,8 @@ app = (
     .build()
 )
 
+
+# Commands
 
 app.add_handler(
     CommandHandler("start", start)
@@ -886,12 +1082,19 @@ app.add_handler(
 )
 
 app.add_handler(
+    CommandHandler("interestedlist", interested_list)
+)
+
+app.add_handler(
     CommandHandler("broadcast", broadcast)
 )
 
 app.add_handler(
-    CommandHandler("interested", interested)
+    CommandHandler("interested", interested_broadcast)
 )
+
+
+# Buttons
 
 app.add_handler(
     CallbackQueryHandler(buttons)
@@ -899,7 +1102,7 @@ app.add_handler(
 
 
 # =========================================================
-# RUN
+# START BOT
 # =========================================================
 
 logger.info("Bot starting...")
