@@ -593,7 +593,7 @@ async def begin_booking(query, context):
         return await query.edit_message_text('❤️ Choose an available time. Your request is not confirmed until approved.', reply_markup=InlineKeyboardMarkup(rows))
     await query.edit_message_text(
         '❤️ Let’s prepare your booking request. This is a request only; it is not confirmed until the admin approves it.\n\n'
-        'First, send your preferred date and time in this format: 25 Oct 2026, 07:30 PM. This format enables automatic reminders.',
+        'Please send your preferred meet date and time.',
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Cancel', callback_data='booking_cancel')]])
     )
 
@@ -612,7 +612,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if form['step'] == 'datetime':
             if len(answer) < 4 or len(answer) > 100:
-                return await update.message.reply_text('Please send a date and time, for example: 25 Oct, 7:30 PM.')
+                return await update.message.reply_text('Please send your preferred meet date and time.')
             form['preferred_datetime'] = answer
             form['slot_id'] = None
             form['step'] = 'location'
