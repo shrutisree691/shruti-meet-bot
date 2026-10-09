@@ -592,8 +592,8 @@ async def begin_booking(query, context):
         rows.append([InlineKeyboardButton('Cancel', callback_data='booking_cancel')])
         return await query.edit_message_text('❤️ Choose an available time. Your request is not confirmed until approved.', reply_markup=InlineKeyboardMarkup(rows))
     await query.edit_message_text(
-        '❤️ Let’s prepare your booking request. This is a request only; it is not confirmed until the admin approves it.\n\n'
-        'Please send your preferred meet date and time.',
+        '❤️ Let’s make your Real Meet booking request.\n\n'
+        'Please send your preferred meet Date and Time here.',
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Cancel', callback_data='booking_cancel')]])
     )
 
@@ -612,7 +612,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if form['step'] == 'datetime':
             if len(answer) < 4 or len(answer) > 100:
-                return await update.message.reply_text('Please send your preferred meet date and time.')
+                return await update.message.reply_text('Please send your preferred meet Date and Time here.')
             form['preferred_datetime'] = answer
             form['slot_id'] = None
             form['step'] = 'location'
@@ -660,7 +660,7 @@ async def finalize_booking(update, context):
         await update.effective_message.reply_text('Your request was saved, but I could not notify the admin. Please contact @shruti23official directly.')
         return
     await update.effective_message.reply_text(
-        f'✅ Your request #{request_id} has been sent for review. It is not confirmed yet; wait for an admin response. ❤️',
+        f'❤️ Thank you for your request! Shruti will take a look and get back to you as soon as she can. Thanks for your patience, and have a lovely day! 😊💕',
         reply_markup=main_menu())
 
 # ---------------- BUTTONS ----------------
