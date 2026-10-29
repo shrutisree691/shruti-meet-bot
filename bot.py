@@ -101,12 +101,11 @@ https://t.me/+Jan_CAExO9ZlZDVl
 💌 Preferred Date & Time
 💌 Meeting Location (Your Home / Hotel)
 
-╭━━━━━━━━━━━━━━━━━━━━━━╮
-💝 "Get ready for the experience you've been waiting for." ✨
+╭━━━━━━━━━━━━━━━━━━━━━━━━━╮
+💝"Where comfort, chemistry, and beautiful romantic moments come together"✨
 ╰━━━━━━━━━━━━━━━━━━━━━━╯
-༺❤️༻────────────༺❤️༻
+༺❤️༻───────────────༺❤️༻
 
-shruti meet charges and details'''
 
 # ---------------- DATABASE ----------------
 def db():
