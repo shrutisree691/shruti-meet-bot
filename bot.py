@@ -101,10 +101,10 @@ https://t.me/+Jan_CAExO9ZlZDVl
 💌 Preferred Date & Time
 💌 Meeting Location (Your Home / Hotel)
 
-╭━━━━━━━━━━━━━━━━━━━━━━━━━╮
+
 💝"Where comfort, chemistry, and beautiful romantic moments come together"✨
-╰━━━━━━━━━━━━━━━━━━━━━━╯
-༺❤️༻───────────────༺❤️༻
+
+༺❤️༻──────────༺❤️༻
 
 
 # ---------------- DATABASE ----------------
