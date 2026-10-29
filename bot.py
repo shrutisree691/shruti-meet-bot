@@ -48,7 +48,7 @@ DETAILS_TEXT = '''𝐅𝐨𝐫 𝐓𝐡𝐨𝐬𝐞 𝐖𝐡𝐨 𝐀𝐩𝐩�
 Good talks, genuine chemistry, romantic moments, playful foreplay, and an intimate connection that feels natural and exciting. I enjoy creating a warm, passionate atmosphere where we can relax, connect, and leave with a smile. ❤️‍🔥✨
 
 ╔══════ 🌹 𝐑𝐚𝐭𝐞𝐬 🌹 ══════╗
-💖 1 Hour   ┇ ₹21K (Single Session)
+💖 1 Hour   ┇ ₹26K (Single Session)
 💖 2 Hours  ┇ ₹30K (Double Session)
 💖 3 Hours  ┇ ₹35K (Extended Session)
 💖 6 Hours  ┇ ₹50K (Quality Time)
