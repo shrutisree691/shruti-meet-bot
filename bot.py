@@ -107,7 +107,8 @@ https://t.me/+Jan_CAExO9ZlZDVl
 ༺❤️༻──────────༺❤️༻
 
 
-# ---------------- DATABASE ----------------
+
+'''# ---------------- DATABASE ----------------
 def db():
     # Apply additive, backward-compatible schema migrations.
     parent = os.path.dirname(os.path.abspath(DB))
